@@ -152,10 +152,16 @@ class TraktSetupPage(QWizardPage):
         self.status_label.setText(f"{self._base_status}<br>Waiting for approval... ({remaining}s left)")
 
     def _on_succeeded(self, client_id: str, client_secret: str, tokens) -> None:
-        config.update_settings(**{config.SETTING_TRAKT_CLIENT_ID: client_id})
-        config.set_secret(config.SECRET_TRAKT_CLIENT_SECRET, client_secret)
-        config.set_secret(config.SECRET_TRAKT_ACCESS_TOKEN, tokens.access_token)
-        config.set_secret(config.SECRET_TRAKT_REFRESH_TOKEN, tokens.refresh_token)
+        try:
+            config.update_settings(**{config.SETTING_TRAKT_CLIENT_ID: client_id})
+            config.set_secret(config.SECRET_TRAKT_CLIENT_SECRET, client_secret)
+            config.set_secret(config.SECRET_TRAKT_ACCESS_TOKEN, tokens.access_token)
+            config.set_secret(config.SECRET_TRAKT_REFRESH_TOKEN, tokens.refresh_token)
+        except Exception as e:  # noqa: BLE001 - Trakt approved us; don't silently strand the wizard if saving fails
+            self.status_label.setText(f"Trakt approved the request, but saving credentials failed: {e}")
+            self.connect_button.setEnabled(True)
+            return
+
         self.status_label.setText("Connected to Trakt.")
         self.connect_button.setEnabled(True)
         self._ready = True

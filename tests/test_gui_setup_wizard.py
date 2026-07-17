@@ -87,6 +87,28 @@ def test_trakt_page_becomes_complete_on_success(qtbot, monkeypatch):
     assert saved_secrets[config.SECRET_TRAKT_REFRESH_TOKEN] == "rt"
 
 
+def test_trakt_page_surfaces_error_when_saving_credentials_fails(qtbot, monkeypatch):
+    # Regression: Trakt approving the device code but the OS keychain write
+    # failing (e.g. errSecInteractionNotAllowed on macOS) used to leave the
+    # wizard silently stuck on "waiting for approval" with an unhandled
+    # exception in the background instead of telling the user anything.
+    _no_existing_credentials(monkeypatch)
+    page = TraktSetupPage()
+    qtbot.addWidget(page)
+
+    def boom(**kw):
+        raise RuntimeError("Can't store password on keychain")
+
+    monkeypatch.setattr(config, "update_settings", boom)
+
+    tokens = TraktTokens("at", "rt", 7776000, 0, "public", "bearer")
+    page._on_succeeded("cid", "csecret", tokens)
+
+    assert page.isComplete() is False
+    assert "keychain" in page.status_label.text()
+    assert page.connect_button.isEnabled() is True
+
+
 def test_trakt_page_stays_incomplete_on_failure(qtbot, monkeypatch):
     _no_existing_credentials(monkeypatch)
     page = TraktSetupPage()
