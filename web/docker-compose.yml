@@ -1,0 +1,13 @@
+services:
+  trakt-calendar-sync-web:
+    build:
+      context: ..
+      dockerfile: web/Dockerfile
+    ports:
+      - "6969:6969"
+    volumes:
+      - trakt-calendar-sync-data:/data
+    restart: unless-stopped
+
+volumes:
+  trakt-calendar-sync-data:

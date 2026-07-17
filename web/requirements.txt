@@ -1,0 +1,7 @@
+flask>=3.0
+apscheduler>=3.10
+requests>=2.31
+google-auth>=2.29
+google-auth-oauthlib>=1.2
+google-api-python-client>=2.126
+python-dateutil>=2.9

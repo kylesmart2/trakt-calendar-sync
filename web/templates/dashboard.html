@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% block content %}
+{% if not setup_complete %}
+  <section>
+    <h2>Setup</h2>
+    <p>
+      Trakt:
+      {% if trakt_connected %}
+        &#9989; Connected
+      {% else %}
+        <a class="button" href="{{ url_for('setup_trakt') }}">Connect Trakt</a>
+      {% endif %}
+    </p>
+    <p>
+      Google Calendar:
+      {% if google_connected %}
+        &#9989; Connected
+      {% else %}
+        <a class="button" href="{{ url_for('setup_google') }}">Connect Google Calendar</a>
+      {% endif %}
+    </p>
+  </section>
+{% else %}
+  <section>
+    <form method="post" action="{{ url_for('sync_now') }}">
+      <button type="submit">Sync Now</button>
+    </form>
+  </section>
+
+  <section>
+    <h2>Daily auto-sync</h2>
+    <form method="post" action="{{ url_for('auto_sync_toggle') }}">
+      <label>
+        <input type="checkbox" name="enabled" {% if auto_sync_enabled %}checked{% endif %}>
+        Enable daily auto-sync at
+      </label>
+      <input type="number" name="hour" min="0" max="23" value="{{ auto_sync_hour }}">
+      :
+      <input type="number" name="minute" min="0" max="59" value="{{ auto_sync_minute }}">
+      <button type="submit">Save</button>
+    </form>
+  </section>
+
+  <section>
+    <h2>Status log</h2>
+    <ul class="log">
+      {% for entry in log %}
+        <li>{{ entry.timestamp }} - {{ entry.message }}</li>
+      {% else %}
+        <li>No syncs yet.</li>
+      {% endfor %}
+    </ul>
+  </section>
+{% endif %}
+{% endblock %}

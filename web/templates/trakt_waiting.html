@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>Connecting to Trakt</h2>
+<p id="status">Requesting a device code...</p>
+<script>
+async function poll() {
+  const res = await fetch("{{ url_for('trakt_status') }}");
+  const data = await res.json();
+  const el = document.getElementById("status");
+
+  if (data.status === "waiting") {
+    el.innerHTML = 'Go to <a href="' + data.verification_url + '" target="_blank" rel="noopener">' +
+      data.verification_url + '</a> and enter code: <b>' + data.user_code + '</b>' +
+      '<br>Waiting for approval... (' + data.remaining + 's left)';
+  } else if (data.status === "succeeded") {
+    el.textContent = "Connected! Redirecting...";
+    window.location.href = "{{ url_for('dashboard') }}";
+    return;
+  } else if (data.status === "failed") {
+    el.innerHTML = "Failed: " + data.error + ' - <a href="{{ url_for(\'setup_trakt\') }}">try again</a>';
+    return;
+  }
+  setTimeout(poll, 2000);
+}
+poll();
+</script>
+{% endblock %}

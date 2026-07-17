@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>Connect Trakt</h2>
+<p>
+  Create your own Trakt API app, then paste its Client ID and Client Secret
+  below:
+  <a href="https://app.trakt.tv/settings/apps/api/new" target="_blank" rel="noopener">
+    https://app.trakt.tv/settings/apps/api/new
+  </a>
+</p>
+<form method="post" action="{{ url_for('trakt_connect') }}">
+  <div><input type="text" name="client_id" placeholder="Client ID" value="{{ client_id }}" required></div>
+  <div><input type="password" name="client_secret" placeholder="Client Secret" required></div>
+  <button type="submit">Connect to Trakt</button>
+</form>
+{% endblock %}
