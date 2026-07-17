@@ -200,7 +200,12 @@ def test_sync_now_reports_setup_error(client, monkeypatch):
     assert b"Sync not configured" in response.data
 
 
-def test_sync_now_logs_result_and_appends_to_status_log(client, monkeypatch):
+def test_sync_now_logs_result_without_flashing_on_success(client, monkeypatch):
+    # The flash box is reserved for actual problems - a routine successful
+    # sync should only ever show up in the persistent status log, not pop up
+    # a message too (that was the point of moving this to the log at all).
+    _complete_trakt_setup()
+    monkeypatch.setattr(app_module.google_oauth_web, "load_credentials", lambda: object())
     fake_result = MagicMock(
         episodes_synced=5, calendar_id="cal-1", removed_events=["Old Show - S01E01"], errors=[]
     )
@@ -208,9 +213,25 @@ def test_sync_now_logs_result_and_appends_to_status_log(client, monkeypatch):
 
     response = client.post("/sync", follow_redirects=True)
 
-    assert b"Synced 5 episode" in response.data
+    assert b'class="flash"' not in response.data
+    assert b"Synced 5 episode" in response.data  # present via the log box
     log = storage.get_log()
     assert any("Synced 5 episode" in entry["message"] for entry in log)
+
+
+def test_sync_now_flashes_and_logs_when_errors_present(client, monkeypatch):
+    _complete_trakt_setup()
+    monkeypatch.setattr(app_module.google_oauth_web, "load_credentials", lambda: object())
+    fake_result = MagicMock(
+        episodes_synced=1, calendar_id="cal-1", removed_events=[], errors=["Bad Show - S01E01: quota exceeded"]
+    )
+    monkeypatch.setattr(app_module.sync_web, "run_sync", lambda: fake_result)
+
+    response = client.post("/sync", follow_redirects=True)
+
+    assert b"1 error(s)" in response.data
+    log = storage.get_log()
+    assert any("Bad Show" in entry["message"] for entry in log)
 
 
 def test_auto_sync_toggle_enables_with_chosen_time(client):

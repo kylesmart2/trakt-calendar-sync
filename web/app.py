@@ -194,10 +194,16 @@ def sync_now():
     if result.removed_events:
         message += f" - removed {len(result.removed_events)} stale event(s): {', '.join(result.removed_events)}"
     storage.append_log(message)
-    flash(message)
+
     for error in result.errors:
         storage.append_log(f"error: {error}")
-        flash(f"Error: {error}")
+
+    # The flash box is reserved for things that actually went wrong - a
+    # routine successful sync just shows up in the status log below, same
+    # as the native GUI's single log widget.
+    if result.errors:
+        flash(f"Sync completed with {len(result.errors)} error(s) - see status log below.")
+
     return redirect(url_for("dashboard"))
 
 

@@ -43,13 +43,13 @@
 
   <section>
     <h2>Status log</h2>
-    <ul class="log">
+    <div class="log-box">
       {% for entry in log %}
-        <li>{{ entry.timestamp }} - {{ entry.message }}</li>
+        <div class="log-line">{{ entry.timestamp }} - {{ entry.message }}</div>
       {% else %}
-        <li>No syncs yet.</li>
+        <div class="log-line">No syncs yet.</div>
       {% endfor %}
-    </ul>
+    </div>
   </section>
 {% endif %}
 {% endblock %}
