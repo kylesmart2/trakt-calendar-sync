@@ -1,9 +1,75 @@
+:root {
+  --bg: #ffffff;
+  --fg: #1a1a1a;
+  --surface: #ffffff;
+  --border: #cccccc;
+  --border-soft: #eeeeee;
+  --accent: #2563eb;
+  --accent-hover: #1d4ed8;
+  --accent-fg: #ffffff;
+  --flash-bg: #fffae6;
+  --flash-border: #e0d080;
+  --code-box-bg: #f5f5f5;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #121212;
+    --fg: #e5e5e5;
+    --surface: #1e1e1e;
+    --border: #3a3a3a;
+    --border-soft: #2a2a2a;
+    --accent: #3b82f6;
+    --accent-hover: #2563eb;
+    --accent-fg: #ffffff;
+    --flash-bg: #3a341a;
+    --flash-border: #6b5f2a;
+    --code-box-bg: #1a1a1a;
+  }
+}
+
+:root[data-theme="dark"] {
+  --bg: #121212;
+  --fg: #e5e5e5;
+  --surface: #1e1e1e;
+  --border: #3a3a3a;
+  --border-soft: #2a2a2a;
+  --accent: #3b82f6;
+  --accent-hover: #2563eb;
+  --accent-fg: #ffffff;
+  --flash-bg: #3a341a;
+  --flash-border: #6b5f2a;
+  --code-box-bg: #1a1a1a;
+}
+
+:root[data-theme="light"] {
+  --bg: #ffffff;
+  --fg: #1a1a1a;
+  --surface: #ffffff;
+  --border: #cccccc;
+  --border-soft: #eeeeee;
+  --accent: #2563eb;
+  --accent-hover: #1d4ed8;
+  --accent-fg: #ffffff;
+  --flash-bg: #fffae6;
+  --flash-border: #e0d080;
+  --code-box-bg: #f5f5f5;
+}
+
 body {
   font-family: system-ui, -apple-system, sans-serif;
   max-width: 640px;
   margin: 2rem auto;
   padding: 0 1rem;
-  color: #1a1a1a;
+  color: var(--fg);
+  background: var(--bg);
+}
+
+header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
 }
 
 section {
@@ -11,8 +77,8 @@ section {
 }
 
 .flash {
-  background: #fffae6;
-  border: 1px solid #e0d080;
+  background: var(--flash-bg);
+  border: 1px solid var(--flash-border);
   padding: 0.5rem 1rem;
   list-style: none;
   margin-bottom: 1rem;
@@ -21,8 +87,8 @@ section {
 .button, button {
   display: inline-block;
   padding: 0.5rem 1rem;
-  background: #2563eb;
-  color: white;
+  background: var(--accent);
+  color: var(--accent-fg);
   border: none;
   border-radius: 4px;
   text-decoration: none;
@@ -31,13 +97,17 @@ section {
 }
 
 .button:hover, button:hover {
-  background: #1d4ed8;
+  background: var(--accent-hover);
 }
 
-input[type="text"], input[type="password"], input[type="number"] {
+input[type="text"], input[type="password"], input[type="number"], input[type="time"] {
   padding: 0.4rem;
   margin: 0.25rem 0;
   font-size: 1rem;
+  color: var(--fg);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 4px;
 }
 
 .log-box {
@@ -46,8 +116,8 @@ input[type="text"], input[type="password"], input[type="number"] {
   min-height: 300px;
   overflow-y: auto;
   box-sizing: border-box;
-  background: white;
-  border: 1px solid #ccc;
+  background: var(--surface);
+  border: 1px solid var(--border);
   border-radius: 6px;
   padding: 0.75rem 1rem;
   font-family: monospace;
@@ -56,14 +126,14 @@ input[type="text"], input[type="password"], input[type="number"] {
 
 .log-line {
   padding: 0.25rem 0;
-  border-bottom: 1px solid #eee;
+  border-bottom: 1px solid var(--border-soft);
   white-space: pre-wrap;
   overflow-wrap: anywhere;
 }
 
 .code-box {
-  background: #f5f5f5;
-  border: 1px solid #ddd;
+  background: var(--code-box-bg);
+  border: 1px solid var(--border);
   border-radius: 6px;
   padding: 1rem;
   margin: 1rem 0;
@@ -81,8 +151,9 @@ input[type="text"], input[type="password"], input[type="number"] {
   font-size: 1.5rem;
   font-weight: bold;
   letter-spacing: 0.05em;
-  background: white;
-  border: 1px solid #ccc;
+  background: var(--surface);
+  border: 1px solid var(--border);
   border-radius: 4px;
   padding: 0.4rem 0.8rem;
+  color: var(--fg);
 }
