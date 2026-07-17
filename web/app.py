@@ -36,6 +36,18 @@ def is_setup_complete() -> bool:
     return storage.load_trakt_credentials() is not None and google_oauth_web.load_credentials() is not None
 
 
+def _parse_time_field(value: str | None) -> tuple:
+    """Parses an <input type="time"> field's "HH:MM" value - falls back to
+    the defaults if it's missing or malformed rather than 500ing the toggle."""
+    if value:
+        try:
+            hour_str, minute_str = value.split(":")
+            return int(hour_str), int(minute_str)
+        except ValueError:
+            pass
+    return DEFAULT_AUTO_SYNC_HOUR, DEFAULT_AUTO_SYNC_MINUTE
+
+
 @app.route("/")
 def dashboard():
     trakt_connected = storage.load_trakt_credentials() is not None
@@ -210,8 +222,7 @@ def sync_now():
 @app.route("/auto-sync", methods=["POST"])
 def auto_sync_toggle():
     enabled = request.form.get("enabled") == "on"
-    hour = int(request.form.get("hour", DEFAULT_AUTO_SYNC_HOUR))
-    minute = int(request.form.get("minute", DEFAULT_AUTO_SYNC_MINUTE))
+    hour, minute = _parse_time_field(request.form.get("time"))
 
     if enabled:
         scheduler.enable(hour, minute)

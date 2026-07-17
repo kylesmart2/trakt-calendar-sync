@@ -236,7 +236,7 @@ def test_sync_now_flashes_and_logs_when_errors_present(client, monkeypatch):
 
 def test_auto_sync_toggle_enables_with_chosen_time(client):
     response = client.post(
-        "/auto-sync", data={"enabled": "on", "hour": "9", "minute": "30"}, follow_redirects=True
+        "/auto-sync", data={"enabled": "on", "time": "09:30"}, follow_redirects=True
     )
 
     assert b"enabled at 09:30" in response.data
@@ -246,7 +246,19 @@ def test_auto_sync_toggle_enables_with_chosen_time(client):
 def test_auto_sync_toggle_disables(client):
     scheduler.enable(9, 0)
 
-    response = client.post("/auto-sync", data={"hour": "9", "minute": "0"}, follow_redirects=True)
+    response = client.post("/auto-sync", data={"time": "09:00"}, follow_redirects=True)
 
     assert b"disabled" in response.data
     assert scheduler.is_enabled() is False
+
+
+def test_parse_time_field_falls_back_on_malformed_input():
+    assert app_module._parse_time_field(None) == (
+        app_module.DEFAULT_AUTO_SYNC_HOUR,
+        app_module.DEFAULT_AUTO_SYNC_MINUTE,
+    )
+    assert app_module._parse_time_field("garbage") == (
+        app_module.DEFAULT_AUTO_SYNC_HOUR,
+        app_module.DEFAULT_AUTO_SYNC_MINUTE,
+    )
+    assert app_module._parse_time_field("14:05") == (14, 5)
