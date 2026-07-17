@@ -23,15 +23,10 @@ def build_service(credentials):
 
 
 def find_or_create_tv_shows_calendar(service) -> str:
-    page_token = None
-    while True:
-        response = service.calendarList().list(pageToken=page_token).execute()
-        for entry in response.get("items", []):
-            if entry.get("summary") == CALENDAR_NAME:
-                return entry["id"]
-        page_token = response.get("nextPageToken")
-        if not page_token:
-            break
+    items = _paginate(lambda token: service.calendarList().list(pageToken=token).execute())
+    for entry in items:
+        if entry.get("summary") == CALENDAR_NAME:
+            return entry["id"]
 
     created = service.calendars().insert(
         body={"summary": CALENDAR_NAME, "description": CALENDAR_DESCRIPTION}
@@ -81,19 +76,26 @@ def prune_stale_events(service, calendar_id: str, current_episodes) -> list:
 
 
 def _list_synced_events(service, calendar_id: str) -> list:
-    events = []
+    items = _paginate(lambda token: service.events().list(calendarId=calendar_id, pageToken=token).execute())
+    return [
+        item
+        for item in items
+        if item.get("extendedProperties", {}).get("private", {}).get(EPISODE_KEY_PROPERTY)
+    ]
+
+
+def _paginate(list_call) -> list:
+    """Runs a Google API .list() call (list_call(page_token) -> response
+    dict) across every page and returns the combined 'items'."""
+    items = []
     page_token = None
     while True:
-        response = service.events().list(calendarId=calendar_id, pageToken=page_token).execute()
-        events.extend(
-            item
-            for item in response.get("items", [])
-            if item.get("extendedProperties", {}).get("private", {}).get(EPISODE_KEY_PROPERTY)
-        )
+        response = list_call(page_token)
+        items.extend(response.get("items", []))
         page_token = response.get("nextPageToken")
         if not page_token:
             break
-    return events
+    return items
 
 
 def _episode_key(episode) -> str:
@@ -105,7 +107,7 @@ def _event_body(episode, key: str) -> dict:
     start = episode.air_date
     end = start + timedelta(minutes=episode.runtime or DEFAULT_RUNTIME_MINUTES)
     return {
-        "summary": f"{episode.show_title} - S{episode.season:02d}E{episode.episode_number:02d}",
+        "summary": episode.label,
         "description": episode.episode_title,
         "start": {"dateTime": start.isoformat()},
         "end": {"dateTime": end.isoformat()},

@@ -1,9 +1,9 @@
-from datetime import date
+from datetime import date, datetime, timezone
 from unittest.mock import MagicMock
 
 import pytest
 
-from trakt_calendar_sync.trakt.client import MAX_CALENDAR_DAYS, TraktClient
+from trakt_calendar_sync.trakt.client import MAX_CALENDAR_DAYS, TraktClient, UpcomingEpisode
 from trakt_calendar_sync.trakt.exceptions import TraktAPIError
 
 
@@ -35,6 +35,20 @@ def _calendar_entry(
 @pytest.fixture
 def client():
     return TraktClient("cid", "csecret", "at", "rt", session=MagicMock())
+
+
+def test_upcoming_episode_label_matches_calendar_event_and_error_message_format():
+    episode = UpcomingEpisode(
+        show_title="Severance",
+        show_ids={"trakt": 1},
+        season=2,
+        episode_number=5,
+        episode_title="Ep",
+        air_date=datetime(2026, 7, 20, 21, 0, tzinfo=timezone.utc),
+        runtime=55,
+    )
+
+    assert episode.label == "Severance - S02E05"
 
 
 def test_get_upcoming_episodes_requests_calendar_with_today_and_watchlist_filters(client, monkeypatch):

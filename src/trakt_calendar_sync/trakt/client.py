@@ -9,11 +9,8 @@ from typing import Callable
 import requests
 from dateutil import parser as date_parser
 
-from .auth import TraktDeviceAuth, TraktTokens
+from .auth import API_BASE, REQUEST_TIMEOUT, TraktDeviceAuth, TraktTokens
 from .exceptions import TraktAPIError
-
-API_BASE = "https://api.trakt.tv"
-REQUEST_TIMEOUT = 15
 
 # Trakt caps the calendar endpoints' `days` window at 33 -
 # https://docs.trakt.tv/reference/getcalendarsshows
@@ -29,6 +26,12 @@ class UpcomingEpisode:
     episode_title: str
     air_date: datetime  # tz-aware, UTC
     runtime: int | None
+
+    @property
+    def label(self) -> str:
+        """The one canonical "which episode is this" string shown to users -
+        in calendar event titles and in sync error/status messages alike."""
+        return f"{self.show_title} - S{self.season:02d}E{self.episode_number:02d}"
 
 
 class TraktClient:

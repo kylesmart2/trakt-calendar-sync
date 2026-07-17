@@ -20,6 +20,23 @@ def test_loads_auto_sync_state_disabled_by_default(qtbot, monkeypatch):
     assert window.auto_sync_checkbox.isChecked() is False
 
 
+def test_construction_survives_scheduler_check_raising(qtbot, monkeypatch):
+    # Regression: a missing systemctl/launchctl/schtasks binary used to raise
+    # out of MainWindow.__init__ (via _load_auto_sync_state), crashing the
+    # whole app before any window ever appeared.
+    def boom():
+        raise FileNotFoundError("systemctl not found")
+
+    monkeypatch.setattr(scheduler, "is_auto_sync_enabled", boom)
+    monkeypatch.setattr(config, "load_settings", lambda: {})
+
+    window = MainWindow()
+    qtbot.addWidget(window)
+
+    assert window.auto_sync_checkbox.isChecked() is False
+    assert "systemctl not found" in window.status_log.toPlainText()
+
+
 def test_loads_auto_sync_state_enabled(qtbot, monkeypatch):
     window = _make_window(qtbot, monkeypatch, auto_sync_enabled=True)
 

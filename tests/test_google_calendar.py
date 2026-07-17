@@ -28,6 +28,28 @@ def _service_with_calendar_list(items, next_page_token=None):
     return service
 
 
+def test_paginate_collects_items_across_pages():
+    responses = [
+        {"items": [1, 2], "nextPageToken": "p2"},
+        {"items": [3], "nextPageToken": "p3"},
+        {"items": [4]},
+    ]
+    calls = []
+
+    def list_call(token):
+        calls.append(token)
+        return responses[len(calls) - 1]
+
+    items = calendar._paginate(list_call)
+
+    assert items == [1, 2, 3, 4]
+    assert calls == [None, "p2", "p3"]
+
+
+def test_paginate_returns_empty_list_for_single_empty_page():
+    assert calendar._paginate(lambda token: {"items": []}) == []
+
+
 def test_find_or_create_returns_existing_calendar():
     service = _service_with_calendar_list([{"summary": "TV Shows", "id": "cal-123"}])
 

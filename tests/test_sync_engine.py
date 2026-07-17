@@ -8,7 +8,7 @@ from trakt_calendar_sync.google_cal import auth as google_auth
 from trakt_calendar_sync.google_cal import calendar as google_calendar
 from trakt_calendar_sync.sync import engine
 from trakt_calendar_sync.trakt.client import TraktClient, UpcomingEpisode
-from trakt_calendar_sync.trakt.exceptions import TraktAPIError
+from trakt_calendar_sync.trakt.exceptions import TraktAPIError, TraktAuthError
 
 
 def _episode(show_title="Severance", episode_number=5) -> UpcomingEpisode:
@@ -96,6 +96,48 @@ def test_run_sync_reports_trakt_api_error_without_touching_calendar(monkeypatch)
     assert result.episodes_synced == 0
     assert "boom" in result.errors[0]
     find_or_create.assert_not_called()
+
+
+def test_run_sync_reports_trakt_auth_error_without_touching_calendar(monkeypatch):
+    # Regression: TraktAuthError (raised when a token refresh fails) is a
+    # sibling of TraktAPIError, not a subclass - an `except TraktAPIError`
+    # alone doesn't catch it.
+    _configure_trakt(monkeypatch)
+    _configure_google(monkeypatch)
+
+    def raise_error(self):
+        raise TraktAuthError("refresh token revoked")
+
+    monkeypatch.setattr(TraktClient, "get_upcoming_episodes", raise_error)
+    find_or_create = MagicMock()
+    monkeypatch.setattr(google_calendar, "find_or_create_tv_shows_calendar", find_or_create)
+
+    result = engine.run_sync()
+
+    assert not result.ok
+    assert result.episodes_synced == 0
+    assert "refresh token revoked" in result.errors[0]
+    find_or_create.assert_not_called()
+
+
+def test_run_sync_reports_calendar_lookup_failure(monkeypatch):
+    _configure_trakt(monkeypatch)
+    _configure_google(monkeypatch)
+    monkeypatch.setattr(TraktClient, "get_upcoming_episodes", lambda self: [_episode()])
+
+    def raise_error(service):
+        raise RuntimeError("quota exceeded")
+
+    monkeypatch.setattr(google_calendar, "find_or_create_tv_shows_calendar", raise_error)
+    upsert = MagicMock()
+    monkeypatch.setattr(google_calendar, "upsert_event", upsert)
+
+    result = engine.run_sync()
+
+    assert not result.ok
+    assert result.episodes_synced == 0
+    assert "quota exceeded" in result.errors[0]
+    upsert.assert_not_called()
 
 
 def test_run_sync_isolates_a_single_bad_episode(monkeypatch):

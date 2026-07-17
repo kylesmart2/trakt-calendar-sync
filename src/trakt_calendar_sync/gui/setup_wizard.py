@@ -27,14 +27,7 @@ TRAKT_NEW_APP_URL = "https://app.trakt.tv/settings/apps/api/new"
 
 
 def is_setup_complete() -> bool:
-    settings = config.load_settings()
-    trakt_ready = bool(
-        settings.get(config.SETTING_TRAKT_CLIENT_ID)
-        and config.get_secret(config.SECRET_TRAKT_CLIENT_SECRET)
-        and config.get_secret(config.SECRET_TRAKT_ACCESS_TOKEN)
-        and config.get_secret(config.SECRET_TRAKT_REFRESH_TOKEN)
-    )
-    return trakt_ready and google_auth.load_credentials() is not None
+    return config.load_trakt_credentials() is not None and google_auth.load_credentials() is not None
 
 
 class _DeviceAuthWorker(QThread):
@@ -109,15 +102,9 @@ class TraktSetupPage(QWizardPage):
         self.status_label.setOpenExternalLinks(True)
         layout.addWidget(self.status_label)
 
-        client_id = config.load_settings().get(config.SETTING_TRAKT_CLIENT_ID)
-        already_connected = bool(
-            client_id
-            and config.get_secret(config.SECRET_TRAKT_CLIENT_SECRET)
-            and config.get_secret(config.SECRET_TRAKT_ACCESS_TOKEN)
-            and config.get_secret(config.SECRET_TRAKT_REFRESH_TOKEN)
-        )
-        if already_connected:
-            self.client_id_input.setText(client_id)
+        creds = config.load_trakt_credentials()
+        if creds is not None:
+            self.client_id_input.setText(creds["client_id"])
             self.status_label.setText("Already connected to Trakt.")
             self._ready = True
 
@@ -170,6 +157,16 @@ class TraktSetupPage(QWizardPage):
     def _on_failed(self, message: str) -> None:
         self.status_label.setText(f"Failed: {message}")
         self.connect_button.setEnabled(True)
+
+    def _stop_worker(self) -> None:
+        """Called when the wizard is closing - tells the poll loop to stop
+        and silences its signals so it can't fire into this (possibly about
+        to be destroyed) page. The thread itself winds down within one poll
+        interval on its own; nothing here needs to block waiting for it.
+        """
+        if self._worker is not None and self._worker.isRunning():
+            self._worker.cancel()
+            self._worker.blockSignals(True)
 
 
 class _GoogleAuthWorker(QThread):
@@ -235,6 +232,13 @@ class GoogleSetupPage(QWizardPage):
         self.status_label.setText(f"Failed: {message}")
         self.signin_button.setEnabled(True)
 
+    def _stop_worker(self) -> None:
+        # run_local_server() has no cancellation hook of its own, so this
+        # can't stop the underlying blocking call - it just silences its
+        # signals so a late succeeded/failed can't fire into this page.
+        if self._worker is not None and self._worker.isRunning():
+            self._worker.blockSignals(True)
+
 
 class SetupWizard(QWizard):
     def __init__(self):
@@ -242,3 +246,18 @@ class SetupWizard(QWizard):
         self.setWindowTitle("Trakt Calendar Sync Setup")
         self.addPage(TraktSetupPage())
         self.addPage(GoogleSetupPage())
+
+    def _stop_all_workers(self) -> None:
+        for page_id in self.pageIds():
+            page = self.page(page_id)
+            stop_worker = getattr(page, "_stop_worker", None)
+            if stop_worker is not None:
+                stop_worker()
+
+    def closeEvent(self, event) -> None:
+        self._stop_all_workers()
+        super().closeEvent(event)
+
+    def reject(self) -> None:
+        self._stop_all_workers()
+        super().reject()

@@ -23,7 +23,6 @@ SECRET_GOOGLE_TOKEN = "google_token"  # serialized google.oauth2.credentials.Cre
 
 # Keys used with load_settings()/save_settings() (non-secret).
 SETTING_TRAKT_CLIENT_ID = "trakt_client_id"
-SETTING_AUTO_SYNC_ENABLED = "auto_sync_enabled"
 SETTING_AUTO_SYNC_HOUR = "auto_sync_hour"
 SETTING_AUTO_SYNC_MINUTE = "auto_sync_minute"
 
@@ -69,3 +68,25 @@ def delete_secret(key: str) -> None:
         keyring.delete_password(KEYRING_SERVICE, key)
     except keyring.errors.PasswordDeleteError:
         pass
+
+
+def load_trakt_credentials() -> dict | None:
+    """The single source of truth for "is Trakt fully configured" - returns
+    None if any piece is missing, otherwise the client ID/secret and tokens
+    needed to build a TraktClient.
+    """
+    settings = load_settings()
+    client_id = settings.get(SETTING_TRAKT_CLIENT_ID)
+    client_secret = get_secret(SECRET_TRAKT_CLIENT_SECRET)
+    access_token = get_secret(SECRET_TRAKT_ACCESS_TOKEN)
+    refresh_token = get_secret(SECRET_TRAKT_REFRESH_TOKEN)
+
+    if not all([client_id, client_secret, access_token, refresh_token]):
+        return None
+
+    return {
+        "client_id": client_id,
+        "client_secret": client_secret,
+        "access_token": access_token,
+        "refresh_token": refresh_token,
+    }

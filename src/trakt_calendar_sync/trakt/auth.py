@@ -49,6 +49,17 @@ class TraktTokens:
     scope: str
     token_type: str
 
+    @classmethod
+    def from_response(cls, data: dict) -> "TraktTokens":
+        return cls(
+            access_token=data["access_token"],
+            refresh_token=data["refresh_token"],
+            expires_in=data["expires_in"],
+            created_at=data["created_at"],
+            scope=data["scope"],
+            token_type=data["token_type"],
+        )
+
 
 class TraktDeviceAuth:
     def __init__(self, client_id: str, client_secret: str, session: requests.Session | None = None):
@@ -105,15 +116,7 @@ class TraktDeviceAuth:
             )
 
             if response.status_code == 200:
-                data = response.json()
-                return TraktTokens(
-                    access_token=data["access_token"],
-                    refresh_token=data["refresh_token"],
-                    expires_in=data["expires_in"],
-                    created_at=data["created_at"],
-                    scope=data["scope"],
-                    token_type=data["token_type"],
-                )
+                return TraktTokens.from_response(response.json())
             if response.status_code == 400:
                 pass  # Pending - user hasn't entered the code yet
             elif response.status_code == 404:
@@ -153,12 +156,4 @@ class TraktDeviceAuth:
             raise TraktAuthError(
                 f"Failed to refresh tokens (HTTP {response.status_code}): {response.text}"
             )
-        data = response.json()
-        return TraktTokens(
-            access_token=data["access_token"],
-            refresh_token=data["refresh_token"],
-            expires_in=data["expires_in"],
-            created_at=data["created_at"],
-            scope=data["scope"],
-            token_type=data["token_type"],
-        )
+        return TraktTokens.from_response(response.json())

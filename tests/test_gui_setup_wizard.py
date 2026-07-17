@@ -1,7 +1,10 @@
+from unittest.mock import MagicMock
+
 from trakt_calendar_sync import config
 from trakt_calendar_sync.google_cal import auth as google_auth
 from trakt_calendar_sync.gui.setup_wizard import (
     GoogleSetupPage,
+    SetupWizard,
     TraktSetupPage,
     is_setup_complete,
 )
@@ -120,6 +123,45 @@ def test_trakt_page_stays_incomplete_on_failure(qtbot, monkeypatch):
     assert "denied" in page.status_label.text()
 
 
+def test_trakt_page_stop_worker_cancels_and_silences_running_worker(qtbot, monkeypatch):
+    # Regression: closing the wizard mid-poll used to leave the background
+    # device-auth thread running, risking a crash when it later emitted a
+    # signal into an already-deleted page.
+    _no_existing_credentials(monkeypatch)
+    page = TraktSetupPage()
+    qtbot.addWidget(page)
+    worker = MagicMock()
+    worker.isRunning.return_value = True
+    page._worker = worker
+
+    page._stop_worker()
+
+    worker.cancel.assert_called_once()
+    worker.blockSignals.assert_called_once_with(True)
+
+
+def test_trakt_page_stop_worker_noop_when_no_worker(qtbot, monkeypatch):
+    _no_existing_credentials(monkeypatch)
+    page = TraktSetupPage()
+    qtbot.addWidget(page)
+
+    page._stop_worker()  # must not raise with no worker started yet
+
+
+def test_trakt_page_stop_worker_noop_when_worker_already_finished(qtbot, monkeypatch):
+    _no_existing_credentials(monkeypatch)
+    page = TraktSetupPage()
+    qtbot.addWidget(page)
+    worker = MagicMock()
+    worker.isRunning.return_value = False
+    page._worker = worker
+
+    page._stop_worker()
+
+    worker.cancel.assert_not_called()
+    worker.blockSignals.assert_not_called()
+
+
 def test_trakt_page_requires_both_fields_before_connecting(qtbot, monkeypatch):
     _no_existing_credentials(monkeypatch)
     page = TraktSetupPage()
@@ -170,6 +212,55 @@ def test_google_page_stays_incomplete_on_failure(qtbot, monkeypatch):
 
     assert page.isComplete() is False
     assert "access_denied" in page.status_label.text()
+
+
+def test_google_page_stop_worker_silences_running_worker(qtbot, monkeypatch):
+    monkeypatch.setattr(google_auth, "load_credentials", lambda: None)
+    page = GoogleSetupPage()
+    qtbot.addWidget(page)
+    worker = MagicMock()
+    worker.isRunning.return_value = True
+    page._worker = worker
+
+    page._stop_worker()
+
+    worker.blockSignals.assert_called_once_with(True)
+
+
+def test_google_page_stop_worker_noop_when_no_worker(qtbot, monkeypatch):
+    monkeypatch.setattr(google_auth, "load_credentials", lambda: None)
+    page = GoogleSetupPage()
+    qtbot.addWidget(page)
+
+    page._stop_worker()  # must not raise with no worker started yet
+
+
+def test_setup_wizard_stops_all_page_workers_on_close(qtbot, monkeypatch):
+    _no_existing_credentials(monkeypatch)
+    wizard = SetupWizard()
+    qtbot.addWidget(wizard)
+    stopped = []
+    for page_id in wizard.pageIds():
+        page = wizard.page(page_id)
+        page._stop_worker = lambda p=page: stopped.append(p)
+
+    wizard.close()
+
+    assert len(stopped) == len(wizard.pageIds()) == 2
+
+
+def test_setup_wizard_stops_all_page_workers_on_reject(qtbot, monkeypatch):
+    _no_existing_credentials(monkeypatch)
+    wizard = SetupWizard()
+    qtbot.addWidget(wizard)
+    stopped = []
+    for page_id in wizard.pageIds():
+        page = wizard.page(page_id)
+        page._stop_worker = lambda p=page: stopped.append(p)
+
+    wizard.reject()
+
+    assert len(stopped) == len(wizard.pageIds()) == 2
 
 
 def test_is_setup_complete_false_when_nothing_configured(monkeypatch):

@@ -2,7 +2,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from trakt_calendar_sync.trakt.auth import DeviceCode, TraktDeviceAuth
+from trakt_calendar_sync.trakt.auth import DeviceCode, TraktDeviceAuth, TraktTokens
 from trakt_calendar_sync.trakt.exceptions import (
     DeviceAuthDenied,
     DeviceAuthExpired,
@@ -16,6 +16,28 @@ def _response(status_code: int, json_data: dict | None = None, text: str = ""):
     resp.json.return_value = json_data or {}
     resp.text = text
     return resp
+
+
+def test_trakt_tokens_from_response():
+    data = {
+        "access_token": "at",
+        "refresh_token": "rt",
+        "expires_in": 7776000,
+        "created_at": 1234567890,
+        "scope": "public",
+        "token_type": "bearer",
+    }
+
+    tokens = TraktTokens.from_response(data)
+
+    assert tokens == TraktTokens(
+        access_token="at",
+        refresh_token="rt",
+        expires_in=7776000,
+        created_at=1234567890,
+        scope="public",
+        token_type="bearer",
+    )
 
 
 @pytest.fixture

@@ -71,8 +71,14 @@ class MainWindow(QMainWindow):
         minute = settings.get(config.SETTING_AUTO_SYNC_MINUTE, DEFAULT_AUTO_SYNC_MINUTE)
         self.auto_sync_time.setTime(QTime(hour, minute))
 
+        try:
+            enabled = scheduler.is_auto_sync_enabled()
+        except Exception as e:  # noqa: BLE001 - a missing/broken OS scheduler tool shouldn't crash the app at launch
+            enabled = False
+            self._log(f"Couldn't check auto-sync status: {e}")
+
         self.auto_sync_checkbox.blockSignals(True)
-        self.auto_sync_checkbox.setChecked(scheduler.is_auto_sync_enabled())
+        self.auto_sync_checkbox.setChecked(enabled)
         self.auto_sync_checkbox.blockSignals(False)
 
     def _on_auto_sync_toggled(self, checked: bool) -> None:
@@ -93,7 +99,6 @@ class MainWindow(QMainWindow):
 
         config.update_settings(
             **{
-                config.SETTING_AUTO_SYNC_ENABLED: checked,
                 config.SETTING_AUTO_SYNC_HOUR: hour,
                 config.SETTING_AUTO_SYNC_MINUTE: minute,
             }
