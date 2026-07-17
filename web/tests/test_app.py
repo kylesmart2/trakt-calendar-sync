@@ -49,10 +49,45 @@ def test_dashboard_shows_sync_controls_when_configured(client, monkeypatch):
     assert b"Daily auto-sync" in response.data
 
 
+def test_setup_trakt_page_renders(client):
+    response = client.get("/setup/trakt")
+
+    assert response.status_code == 200
+    assert b"Connect Trakt" in response.data
+    assert b"app.trakt.tv/settings/apps/api/new" in response.data
+
+
+def test_setup_trakt_page_prefills_existing_client_id(client):
+    _complete_trakt_setup()
+
+    response = client.get("/setup/trakt")
+
+    assert b'value="cid"' in response.data
+
+
+def test_setup_google_page_renders(client):
+    response = client.get("/setup/google")
+
+    assert response.status_code == 200
+    assert b"Sign in with Google" in response.data
+
+
 def test_trakt_connect_requires_both_fields(client):
     response = client.post("/setup/trakt/connect", data={"client_id": "only-id"}, follow_redirects=True)
 
     assert b"Enter both" in response.data
+
+
+def test_trakt_waiting_page_renders(client):
+    # Regression: this page's template had a Jinja2 syntax error (an invalid
+    # backslash-escaped quote inside a {{ }} expression) that 39 other
+    # passing tests never caught, since nothing actually rendered it - the
+    # status JSON endpoint and the connect/redirect logic were tested, but
+    # not this template itself.
+    response = client.get("/setup/trakt/waiting")
+
+    assert response.status_code == 200
+    assert b"Connecting to Trakt" in response.data
 
 
 def test_trakt_connect_starts_background_auth_and_redirects(client, monkeypatch):

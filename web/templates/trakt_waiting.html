@@ -3,6 +3,8 @@
 <h2>Connecting to Trakt</h2>
 <p id="status">Requesting a device code...</p>
 <script>
+const setupTraktUrl = "{{ url_for('setup_trakt') }}";
+
 async function poll() {
   const res = await fetch("{{ url_for('trakt_status') }}");
   const data = await res.json();
@@ -17,7 +19,7 @@ async function poll() {
     window.location.href = "{{ url_for('dashboard') }}";
     return;
   } else if (data.status === "failed") {
-    el.innerHTML = "Failed: " + data.error + ' - <a href="{{ url_for(\'setup_trakt\') }}">try again</a>';
+    el.innerHTML = "Failed: " + data.error + ' - <a href="' + setupTraktUrl + '">try again</a>';
     return;
   }
   setTimeout(poll, 2000);
