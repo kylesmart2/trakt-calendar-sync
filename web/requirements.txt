@@ -5,3 +5,12 @@ google-auth>=2.29
 google-auth-oauthlib>=1.2
 google-api-python-client>=2.126
 python-dateutil>=2.9
+
+# Not used directly by web/ (it has its own storage.py/google_oauth_web.py),
+# but importing trakt_calendar_sync.google_cal.calendar always runs
+# google_cal/__init__.py first, which also imports google_cal/auth.py (the
+# native app's loopback OAuth flow) -> config.py -> `import keyring`. These
+# just need to be importable to satisfy that transitive chain; nothing here
+# ever calls them.
+keyring>=25.1
+platformdirs>=4.2
