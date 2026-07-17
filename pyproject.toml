@@ -1,0 +1,29 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "trakt-calendar-sync"
+version = "0.1.0"
+description = "Sync a Trakt.tv watchlist to a dedicated Google Calendar"
+requires-python = ">=3.10"
+dependencies = [
+    "PySide6>=6.6",
+    "requests>=2.31",
+    "google-auth>=2.29",
+    "google-auth-oauthlib>=1.2",
+    "google-api-python-client>=2.126",
+    "keyring>=25.1",
+    "platformdirs>=4.2",
+    "python-dateutil>=2.9",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8.0", "pytest-qt>=4.4", "pyinstaller>=6.6", "pyinstaller-hooks-contrib>=2024.7"]
+
+[project.scripts]
+trakt-calendar-sync = "trakt_calendar_sync.main:main"
+trakt-calendar-sync-cli = "trakt_calendar_sync.cli_sync:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]

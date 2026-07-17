@@ -1,0 +1,20 @@
+__pycache__/
+*.pyc
+.venv/
+venv/
+build/
+dist/
+*.spec.bak
+*.egg-info/
+
+# Local secrets / OAuth artifacts — never commit these
+credentials.json
+token.json
+.env
+
+# PyInstaller
+*.manifest
+
+# Local tool config, not project-relevant
+.claude/
+.pytest_cache/
