@@ -1,25 +1,52 @@
 {% extends "base.html" %}
 {% block content %}
 <h2>Connecting to Trakt</h2>
+
 <p id="status">Requesting a device code...</p>
+
+<div id="code-box" class="code-box" hidden>
+  <p>Go to <a id="verification-link" href="#" target="_blank" rel="noopener"></a> and enter this code:</p>
+  <div class="code-row">
+    <code id="user-code"></code>
+    <button type="button" id="copy-button">Copy</button>
+  </div>
+  <p id="countdown"></p>
+</div>
+
 <script>
 const setupTraktUrl = "{{ url_for('setup_trakt') }}";
+const statusEl = document.getElementById("status");
+const codeBoxEl = document.getElementById("code-box");
+const verificationLinkEl = document.getElementById("verification-link");
+const userCodeEl = document.getElementById("user-code");
+const countdownEl = document.getElementById("countdown");
+const copyButtonEl = document.getElementById("copy-button");
+
+copyButtonEl.addEventListener("click", async () => {
+  await navigator.clipboard.writeText(userCodeEl.textContent);
+  copyButtonEl.textContent = "Copied!";
+  setTimeout(() => { copyButtonEl.textContent = "Copy"; }, 1500);
+});
 
 async function poll() {
   const res = await fetch("{{ url_for('trakt_status') }}");
   const data = await res.json();
-  const el = document.getElementById("status");
 
   if (data.status === "waiting") {
-    el.innerHTML = 'Go to <a href="' + data.verification_url + '" target="_blank" rel="noopener">' +
-      data.verification_url + '</a> and enter code: <b>' + data.user_code + '</b>' +
-      '<br>Waiting for approval... (' + data.remaining + 's left)';
+    statusEl.textContent = "";
+    codeBoxEl.hidden = false;
+    verificationLinkEl.href = data.verification_url;
+    verificationLinkEl.textContent = data.verification_url;
+    userCodeEl.textContent = data.user_code;
+    countdownEl.textContent = "Waiting for approval... (" + data.remaining + "s left)";
   } else if (data.status === "succeeded") {
-    el.textContent = "Connected! Redirecting...";
+    codeBoxEl.hidden = true;
+    statusEl.textContent = "Connected! Redirecting...";
     window.location.href = "{{ url_for('dashboard') }}";
     return;
   } else if (data.status === "failed") {
-    el.innerHTML = "Failed: " + data.error + ' - <a href="' + setupTraktUrl + '">try again</a>';
+    codeBoxEl.hidden = true;
+    statusEl.innerHTML = "Failed: " + data.error + ' - <a href="' + setupTraktUrl + '">try again</a>';
     return;
   }
   setTimeout(poll, 2000);

@@ -151,12 +151,14 @@ def google_authorize():
     flow = google_oauth_web.build_flow(redirect_uri)
     auth_url, state = google_oauth_web.authorization_url(flow)
     session["google_oauth_state"] = state
+    session["google_oauth_code_verifier"] = flow.code_verifier
     return redirect(auth_url)
 
 
 @app.route("/oauth/callback")
 def oauth_callback():
     expected_state = session.pop("google_oauth_state", None)
+    code_verifier = session.pop("google_oauth_code_verifier", None)
     if expected_state is None or request.args.get("state") != expected_state:
         flash("Google sign-in failed: state mismatch - please try again.")
         return redirect(url_for("dashboard"))
@@ -166,7 +168,7 @@ def oauth_callback():
         return redirect(url_for("dashboard"))
 
     redirect_uri = url_for("oauth_callback", _external=True)
-    flow = google_oauth_web.build_flow(redirect_uri)
+    flow = google_oauth_web.build_flow(redirect_uri, code_verifier=code_verifier)
     try:
         google_oauth_web.complete_authorization(flow, request.url)
     except Exception as e:  # noqa: BLE001 - surface any failure, don't crash the request

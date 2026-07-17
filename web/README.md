@@ -12,9 +12,11 @@ by anything here, and nothing inside `web/` is required by the native app.
 
 1. Get a Google OAuth client (Google Cloud Console → APIs & Services →
    Credentials) and save it as `web/credentials.json` (see
-   `credentials.json.example` for the shape). This can be the same file as
-   the native app's `resources/credentials.json` - or a fresh one if you hit
-   the OAuth-client-type issue below.
+   `credentials.json.example` for the shape). Confirmed working: the same
+   **Desktop app**-type client the native app uses
+   (`resources/credentials.json`) - Google accepts
+   `http://localhost:6969/oauth/callback` as a redirect URI for it without
+   needing a separate "Web application" client.
 2. From the repo root:
    ```bash
    cd web
@@ -23,18 +25,14 @@ by anything here, and nothing inside `web/` is required by the native app.
 3. Open `http://localhost:6969` and follow the on-screen setup (Trakt device
    code, then Google sign-in).
 
-## A known open question
+Trakt setup can reuse the exact same Trakt API app (Client ID/Secret) you
+already created for the native app - it uses the same device-code flow
+either way, which never involves a redirect URI at all.
 
-The Google OAuth client type matters here. `resources/credentials.json` (native
-app) is a **Desktop app** client, which uses a *loopback* flow with a
-dynamically chosen port - not the fixed `http://localhost:6969/oauth/callback`
-this app needs. Google's loopback spec (RFC 8252) is lenient about Desktop
-clients using arbitrary localhost ports/paths without pre-registration, so
-the same file *may* just work - but this hasn't been verified. If sign-in
-fails with a redirect_uri mismatch, create a **Web application**-type OAuth
-client in Google Cloud Console instead, with
-`http://localhost:6969/oauth/callback` added to its Authorized redirect URIs,
-and use that as `web/credentials.json`.
+Google sign-in only works over plain HTTP here because
+`google_oauth_web.py` sets `OAUTHLIB_INSECURE_TRANSPORT=1` - see that
+module's docstring for why that's safe for a localhost-only deployment but
+worth revisiting if this ever sits behind a real public endpoint.
 
 ## Persistent data
 

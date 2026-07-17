@@ -6,23 +6,31 @@ random port) which can't be reused here - this app owns a real route
 (see app.py's /oauth/callback) to receive the redirect instead, so it talks
 to google-auth-oauthlib's Flow class directly.
 
-Uses web/credentials.json for the OAuth client - can be the same file as the
-native app's resources/credentials.json, or a dedicated "Web application"
-type client if a "Desktop app" client's redirect URI rules turn out not to
-accept a fixed localhost:6969 callback (untested - cross that bridge if it
-comes up).
+Uses web/credentials.json for the OAuth client - confirmed working with the
+same "Desktop app" client the native app uses (resources/credentials.json):
+Google accepts http://localhost:6969/oauth/callback as a redirect URI for it
+without a separate "Web application" client being needed.
+
+oauthlib (which google-auth-oauthlib wraps) refuses to complete a token
+exchange over a plain-http authorization_response URL by default, regardless
+of host - OAUTHLIB_INSECURE_TRANSPORT disables that check. Safe here because
+this app is only ever reached over plain HTTP on localhost/the local
+network, never a real public endpoint - if that ever changes, put a TLS
+reverse proxy in front instead of relying on this.
 """
 
 import json
 import os
 from pathlib import Path
 
-from google.auth.exceptions import RefreshError
-from google.auth.transport.requests import Request
-from google.oauth2.credentials import Credentials
-from google_auth_oauthlib.flow import Flow
+os.environ.setdefault("OAUTHLIB_INSECURE_TRANSPORT", "1")
 
-from . import storage
+from google.auth.exceptions import RefreshError  # noqa: E402
+from google.auth.transport.requests import Request  # noqa: E402
+from google.oauth2.credentials import Credentials  # noqa: E402
+from google_auth_oauthlib.flow import Flow  # noqa: E402
+
+from . import storage  # noqa: E402
 
 SCOPES = ["https://www.googleapis.com/auth/calendar"]
 
@@ -60,8 +68,19 @@ def load_credentials() -> Credentials | None:
     return None
 
 
-def build_flow(redirect_uri: str) -> Flow:
-    return Flow.from_client_secrets_file(str(credentials_path()), scopes=SCOPES, redirect_uri=redirect_uri)
+def build_flow(redirect_uri: str, code_verifier: str | None = None) -> Flow:
+    """code_verifier must be passed back in on the callback request - Flow
+    auto-generates one (PKCE) in authorization_url(), but that's a different
+    Flow instance than the one that later exchanges the code, since the
+    authorize and callback routes are two separate HTTP requests. The
+    caller is responsible for stashing flow.code_verifier somewhere (e.g.
+    the Flask session, next to the existing CSRF `state`) and passing it
+    back in here for the callback's Flow - otherwise Google rejects the
+    token exchange with 'invalid_grant: Missing code verifier'.
+    """
+    return Flow.from_client_secrets_file(
+        str(credentials_path()), scopes=SCOPES, redirect_uri=redirect_uri, code_verifier=code_verifier
+    )
 
 
 def authorization_url(flow: Flow) -> tuple:

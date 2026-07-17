@@ -1,9 +1,19 @@
 import json
+import os
 from unittest.mock import MagicMock, patch
 
 from google.auth.exceptions import RefreshError
 
 from web import google_oauth_web, storage
+
+
+def test_module_disables_oauthlib_https_enforcement():
+    # Regression: without this, flow.fetch_token() raises oauthlib's
+    # InsecureTransportError against the plain-http callback URL this app
+    # actually receives (confirmed against the real container - Google's
+    # server accepted the redirect fine and sent back a real code, the
+    # failure was oauthlib's own client-side check on the callback URL).
+    assert os.environ.get("OAUTHLIB_INSECURE_TRANSPORT") == "1"
 
 
 def test_load_credentials_returns_none_when_nothing_cached():
@@ -96,4 +106,22 @@ def test_build_flow_uses_credentials_path_and_scopes():
         str(google_oauth_web.credentials_path()),
         scopes=google_oauth_web.SCOPES,
         redirect_uri="http://localhost:6969/oauth/callback",
+        code_verifier=None,
+    )
+
+
+def test_build_flow_passes_through_code_verifier():
+    # Regression: PKCE's code_verifier is generated on the Flow instance
+    # that builds the authorization URL, but the callback request builds a
+    # *different* Flow instance to exchange the code - without passing the
+    # same code_verifier back in, Google rejects the exchange with
+    # "invalid_grant: Missing code verifier".
+    with patch.object(google_oauth_web.Flow, "from_client_secrets_file") as from_file:
+        google_oauth_web.build_flow("http://localhost:6969/oauth/callback", code_verifier="abc123")
+
+    from_file.assert_called_once_with(
+        str(google_oauth_web.credentials_path()),
+        scopes=google_oauth_web.SCOPES,
+        redirect_uri="http://localhost:6969/oauth/callback",
+        code_verifier="abc123",
     )
