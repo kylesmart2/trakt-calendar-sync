@@ -29,6 +29,12 @@ src_dir = repo_root / "src"
 entrypoint = repo_root / "packaging" / "entrypoint.py"
 credentials_path = repo_root / "resources" / "credentials.json"
 
+# Generated from resources/appIcon.png by packaging/make_icons.py. Missing
+# icons aren't fatal (unlike credentials.json) - PyInstaller just falls back
+# to its default icon if the path doesn't exist.
+ico_path = repo_root / "resources" / "app_icon.ico"
+icns_path = repo_root / "resources" / "app_icon.icns"
+
 # The shared Google OAuth client - see resources/credentials.json.example.
 # build.sh/build_windows.ps1 already refuse to run without this present;
 # this check just makes a spec run outside those scripts fail loudly too.
@@ -100,6 +106,7 @@ if sys.platform == "darwin":
         coll,
         name="Trakt Calendar Sync.app",
         bundle_identifier="com.traktcalendarsync.app",
+        icon=str(icns_path) if icns_path.exists() else None,
         info_plist={
             "CFBundleName": "Trakt Calendar Sync",
             "CFBundleDisplayName": "Trakt Calendar Sync",
@@ -108,7 +115,8 @@ if sys.platform == "darwin":
         },
     )
 else:
-    # onefile: everything embedded in a single binary.
+    # onefile: everything embedded in a single binary. The icon param only
+    # does anything on Windows - PyInstaller ignores it on Linux.
     exe = EXE(
         pyz,
         a.scripts,
@@ -129,4 +137,5 @@ else:
         target_arch=None,
         codesign_identity=None,
         entitlements_file=None,
+        icon=str(ico_path) if sys.platform == "win32" and ico_path.exists() else None,
     )

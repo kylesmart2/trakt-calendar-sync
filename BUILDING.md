@@ -76,6 +76,21 @@ If a Developer ID Application certificate is added later, wire it in via the
 currently `None`) in `packaging/trakt_calendar_sync.spec`, and add a
 `notarytool submit` + `stapler staple` step to `build.sh`.
 
+## App icon
+
+The Windows/macOS builds use `resources/app_icon.ico`/`.icns`, generated from
+`resources/appIcon.png` by `packaging/make_icons.py` (needs Pillow, included
+in the `dev` extra). Both generated files are committed, so a normal build
+doesn't need Pillow or to regenerate anything - only re-run the script if
+`appIcon.png` changes:
+
+```bash
+python packaging/make_icons.py
+```
+
+Linux ignores the icon param entirely (PyInstaller has no concept of an
+embedded icon for a bare ELF binary).
+
 ## What's bundled vs. what's per-user
 
 - `resources/credentials.json` (the shared Google OAuth client) is baked

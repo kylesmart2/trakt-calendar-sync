@@ -19,7 +19,7 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-dev = ["pytest>=8.0", "pytest-qt>=4.4", "pyinstaller>=6.6", "pyinstaller-hooks-contrib>=2024.7"]
+dev = ["pytest>=8.0", "pytest-qt>=4.4", "pyinstaller>=6.6", "pyinstaller-hooks-contrib>=2024.7", "Pillow>=10.0"]
 
 [project.scripts]
 trakt-calendar-sync = "trakt_calendar_sync.main:main"
