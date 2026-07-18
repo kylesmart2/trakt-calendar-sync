@@ -41,7 +41,7 @@ jobs:
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
             echo "version=${{ inputs.version }}" >> "$GITHUB_OUTPUT"
           else
-            echo "version=${GITHUB_REF_NAME#web-}" >> "$GITHUB_OUTPUT"
+            echo "version=${GITHUB_REF_NAME#web-v}" >> "$GITHUB_OUTPUT"
           fi
 
       # credentials.json is gitignored (see release.yml, which does the same
