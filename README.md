@@ -86,6 +86,9 @@ tests/            pytest suite (mocked - no real network/account access)
 
 - **[BUILDING.md](BUILDING.md)** - dev environment setup, running tests, and
   packaging into a standalone executable for each OS.
+- **[RELEASING.md](RELEASING.md)** - cutting a versioned release of the
+  native app or the Docker image (they're tagged and released
+  independently).
 - **[MAINTENANCE.md](MAINTENANCE.md)** - rotating credentials, clearing
   cached tokens, managing the scheduled task, and other upkeep.
 - **[packaging/INSTALL_MACOS.md](packaging/INSTALL_MACOS.md)** - first-launch
