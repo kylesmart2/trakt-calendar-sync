@@ -54,6 +54,11 @@ on older tags when a new one ships; they just stop being what `:latest`
 points at and keep existing under their own tag until someone deletes them
 from the repo's Packages page.
 
+The commit-SHA tags from ordinary pushes are pruned automatically - each run
+of `docker-publish.yml` keeps only the 5 most recent, via
+`actions/delete-package-versions`. Anything tagged `latest` or a bare
+version number (e.g. `1.2.0`) is exempt and never auto-deleted.
+
 To cut a permanent, pinnable version instead of tracking `:latest`:
 
 ```bash

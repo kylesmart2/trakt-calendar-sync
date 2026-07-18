@@ -55,3 +55,16 @@ jobs:
           tags: |
             ${{ env.IMAGE_NAME }}:latest
             ${{ env.IMAGE_NAME }}:${{ github.sha }}
+
+      # Every ordinary push tags a new commit-sha image for traceability,
+      # which otherwise accumulates forever - prune down to the most recent
+      # 5. ignore-versions exempts anything tagged latest or a bare semver
+      # (from docker-publish-versioned.yml) so a deliberately cut version is
+      # never swept up here.
+      - name: Prune old commit-sha-tagged versions
+        uses: actions/delete-package-versions@v5
+        with:
+          package-name: trakt-calendar-sync-web
+          package-type: container
+          min-versions-to-keep: 5
+          ignore-versions: '^(latest|\d+\.\d+\.\d+)$'
