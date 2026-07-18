@@ -10,20 +10,39 @@ by anything here, and nothing inside `web/` is required by the native app.
 
 ## Setup
 
-1. Get a Google OAuth client (Google Cloud Console → APIs & Services →
-   Credentials) and save it as `web/credentials.json` (see
-   `credentials.json.example` for the shape). Confirmed working: the same
-   **Desktop app**-type client the native app uses
-   (`resources/credentials.json`) - Google accepts
-   `http://localhost:6969/oauth/callback` as a redirect URI for it without
-   needing a separate "Web application" client.
-2. From the repo root:
+The published image (`ghcr.io/kylesmart2/trakt-calendar-sync-web`) already
+has the project's shared Google OAuth client baked in - same as the native
+app, every user still signs in with their own Google account via the
+standard consent screen.
+
+1. From the repo root:
    ```bash
    cd web
-   docker compose up --build
+   docker compose up -d
    ```
-3. Open `http://localhost:6969` and follow the on-screen setup (Trakt device
+   This pulls `ghcr.io/kylesmart2/trakt-calendar-sync-web:latest` (built by
+   [`.github/workflows/docker-publish.yml`](../.github/workflows/docker-publish.yml)
+   on every push to `main`) rather than building anything locally.
+2. Open `http://localhost:6969` and follow the on-screen setup (Trakt device
    code, then Google sign-in).
+
+### Building from source instead
+
+If you're changing `web/` code yourself and want to test it before it's
+published, build locally instead of pulling:
+
+```bash
+cd web
+docker compose up -d --build
+```
+
+This uses the same `build:` section already in `docker-compose.yml`, tagged
+with the same image name. In that case you'll need your own Google OAuth
+client (Google Cloud Console → APIs & Services → Credentials) saved as
+`web/credentials.json` (see `credentials.json.example` for the shape) -
+Google accepts `http://localhost:6969/oauth/callback` as a redirect URI for
+a **Desktop app**-type client without needing a separate "Web application"
+client.
 
 Trakt setup can reuse the exact same Trakt API app (Client ID/Secret) you
 already created for the native app - it uses the same device-code flow

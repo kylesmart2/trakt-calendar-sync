@@ -1,5 +1,11 @@
 services:
   trakt-calendar-sync-web:
+    # Pulls the prebuilt image from GHCR by default (see
+    # .github/workflows/docker-publish.yml) - `docker compose up` works
+    # without building anything locally. `build:` is still here so
+    # `docker compose up --build` (or `docker compose build`) builds from
+    # source instead, tagging the result with the same name.
+    image: ghcr.io/kylesmart2/trakt-calendar-sync-web:latest
     build:
       context: ..
       dockerfile: web/Dockerfile
