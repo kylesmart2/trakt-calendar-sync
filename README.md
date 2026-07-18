@@ -56,6 +56,15 @@ that you get the main window:
 - **Enable daily auto-sync at `HH:MM`** - registers/removes the OS-level
   scheduled task.
 
+## Docker / web version
+
+Don't want to install a native build? [`web/`](web/README.md) has a
+containerized alternative: the same Trakt/Google Calendar sync logic behind a
+small self-hosted web UI instead of a desktop app, distributed as a Docker
+image with a `docker-compose.yml`. See [web/README.md](web/README.md) for
+setup, all adjustable environment variables (data directory, credentials
+path, timezone, volume naming), and a full `docker-compose.yml` example.
+
 ## Project layout
 
 ```

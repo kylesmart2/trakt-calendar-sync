@@ -1,4 +1,5 @@
 from unittest.mock import MagicMock
+from zoneinfo import ZoneInfo
 
 from web import scheduler, storage
 
@@ -73,3 +74,23 @@ def test_run_sync_job_logs_errors(monkeypatch):
     monkeypatch.setattr(scheduler, "run_sync", lambda: fake_result)
 
     scheduler._run_sync_job()  # must not raise
+
+
+def test_resolve_timezone_defaults_to_utc(monkeypatch):
+    monkeypatch.delenv("TZ", raising=False)
+
+    assert scheduler._resolve_timezone() == ZoneInfo("UTC")
+
+
+def test_resolve_timezone_honors_tz_env_var(monkeypatch):
+    monkeypatch.setenv("TZ", "America/New_York")
+
+    assert scheduler._resolve_timezone() == ZoneInfo("America/New_York")
+
+
+def test_resolve_timezone_falls_back_on_unknown_tz(monkeypatch):
+    # Regression: a typo'd TZ (e.g. "America/Not_A_City") must not crash the
+    # whole app at import time - fall back to UTC and keep running.
+    monkeypatch.setenv("TZ", "Not/A_Real_Zone")
+
+    assert scheduler._resolve_timezone() == ZoneInfo("UTC")

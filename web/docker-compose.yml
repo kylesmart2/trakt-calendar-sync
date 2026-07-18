@@ -5,9 +5,15 @@ services:
       dockerfile: web/Dockerfile
     ports:
       - "6969:6969"
+    environment:
+      - TZ=${TZ:-UTC}
     volumes:
       - trakt-calendar-sync-data:/data
     restart: unless-stopped
 
 volumes:
   trakt-calendar-sync-data:
+    # The key above is just Compose's internal reference name; this is the
+    # name Docker actually creates on the host (visible in `docker volume
+    # ls`) - override it with a DATA_VOLUME_NAME env var or .env entry.
+    name: ${DATA_VOLUME_NAME:-trakt-calendar-sync-data}

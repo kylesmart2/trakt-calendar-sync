@@ -4,6 +4,11 @@
 #   docker build -f web/Dockerfile -t trakt-calendar-sync-web .
 FROM python:3.12-alpine
 
+# Alpine's musl libc ships no timezone database at all - needed so the TZ
+# env var (see docker-compose.yml) actually affects when the daily sync
+# fires, instead of silently running on UTC regardless of what's set.
+RUN apk add --no-cache tzdata
+
 WORKDIR /app
 
 # The existing native-app package, installed WITHOUT its own declared
@@ -20,6 +25,7 @@ RUN pip install --no-cache-dir -r web/requirements.txt
 COPY web/ /app/web/
 
 ENV TRAKT_CALENDAR_SYNC_WEB_DATA_DIR=/data
+ENV TZ=UTC
 VOLUME /data
 
 EXPOSE 6969
