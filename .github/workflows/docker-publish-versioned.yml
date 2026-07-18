@@ -1,0 +1,71 @@
+name: Docker Publish (versioned)
+
+# Push a tag like web-v1.2.0 to publish the web image under that permanent
+# version tag AND move :latest to point at the same build. Doesn't touch any
+# previously published version tag - each one is an independent pointer at
+# its own image, so nothing needs "updating" when a newer version ships;
+# :latest is the only tag that ever moves.
+#
+# This is separate from docker-publish.yml (which publishes :latest and a
+# commit-sha tag on every ordinary push to main) so that ordinary commits
+# keep :latest fresh for `docker compose pull` without requiring a version
+# bump for every change - use this workflow only when you want a permanent,
+# pinnable release.
+on:
+  push:
+    tags:
+      - "web-v*"
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to publish (e.g. "1.2.0", no "web-v" prefix)'
+        required: true
+
+permissions:
+  contents: read
+  packages: write
+
+env:
+  IMAGE_NAME: ghcr.io/kylesmart2/trakt-calendar-sync-web
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Determine version
+        id: version
+        shell: bash
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "version=${{ inputs.version }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "version=${GITHUB_REF_NAME#web-}" >> "$GITHUB_OUTPUT"
+          fi
+
+      # credentials.json is gitignored (see release.yml, which does the same
+      # thing for the native build) - without this the published image would
+      # have no Google OAuth client baked in at all, and every sign-in would
+      # fail with a missing-file error.
+      - name: Write shared Google OAuth client
+        env:
+          GOOGLE_CREDENTIALS_JSON: ${{ secrets.GOOGLE_CREDENTIALS_JSON }}
+        run: printf '%s' "$GOOGLE_CREDENTIALS_JSON" > web/credentials.json
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: web/Dockerfile
+          push: true
+          tags: |
+            ${{ env.IMAGE_NAME }}:${{ steps.version.outputs.version }}
+            ${{ env.IMAGE_NAME }}:latest

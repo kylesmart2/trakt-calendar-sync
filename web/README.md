@@ -44,6 +44,33 @@ Google accepts `http://localhost:6969/oauth/callback` as a redirect URI for
 a **Desktop app**-type client without needing a separate "Web application"
 client.
 
+### Image tags
+
+`:latest` always points at whatever was most recently published - either an
+ordinary push to `main` ([`docker-publish.yml`](../.github/workflows/docker-publish.yml),
+also tagged with that commit's SHA), or a deliberately cut version (below).
+Pulling `:latest` always gets the newest image; there's nothing to "update"
+on older tags when a new one ships; they just stop being what `:latest`
+points at and keep existing under their own tag until someone deletes them
+from the repo's Packages page.
+
+To cut a permanent, pinnable version instead of tracking `:latest`:
+
+```bash
+git tag web-v1.2.0
+git push origin web-v1.2.0
+```
+
+This runs [`docker-publish-versioned.yml`](../.github/workflows/docker-publish-versioned.yml),
+which publishes `ghcr.io/kylesmart2/trakt-calendar-sync-web:1.2.0` *and* moves
+`:latest` to that same build. Pin `image:` in `docker-compose.yml` to a
+specific version (e.g. `:1.2.0`) instead of `:latest` if you want a
+deployment that never changes underneath you until you explicitly bump it.
+
+Versioning here is independent of the native app's `v*` release tags (this
+directory's own philosophy - see the top of this file) - use `web-v*` so the
+two don't collide.
+
 Trakt setup can reuse the exact same Trakt API app (Client ID/Secret) you
 already created for the native app - it uses the same device-code flow
 either way, which never involves a redirect URI at all.
