@@ -7,10 +7,14 @@ on:
   push:
     branches: [main]
     paths:
+      # src/** and pyproject.toml are here because web/Dockerfile actually
+      # COPYs them in and installs from the root pyproject.toml - the image
+      # isn't fully self-contained under web/, so those genuinely affect it.
       - "web/**"
       - "src/**"
       - "pyproject.toml"
       - ".github/workflows/docker-publish.yml"
+      - "!web/README.md"
   workflow_dispatch:
 
 permissions:
