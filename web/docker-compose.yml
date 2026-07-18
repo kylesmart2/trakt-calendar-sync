@@ -6,7 +6,7 @@ services:
     ports:
       - "6969:6969"
     environment:
-      - TZ=${TZ:-UTC}
+      - TZ=${TZ:-America/New_York}
     volumes:
       - trakt-calendar-sync-data:/data
     restart: unless-stopped
