@@ -10,10 +10,14 @@ multiple workers, swap the lock for a file lock (fcntl) or move to sqlite.
 """
 
 import json
+import logging
 import os
-from datetime import datetime, timezone
+from datetime import datetime
 from pathlib import Path
 from threading import Lock
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
+
+logger = logging.getLogger(__name__)
 
 _LOCK = Lock()
 
@@ -35,6 +39,18 @@ def data_dir() -> Path:
     path = Path(os.environ.get("TRAKT_CALENDAR_SYNC_WEB_DATA_DIR", "/data"))
     path.mkdir(parents=True, exist_ok=True)
     return path
+
+
+def resolve_timezone() -> ZoneInfo:
+    """Shared by the status log and scheduler.py's cron job - both need the
+    same TZ the user set (see web/README.md) rather than the container's
+    default UTC."""
+    tz_name = os.environ.get("TZ", "UTC")
+    try:
+        return ZoneInfo(tz_name)
+    except ZoneInfoNotFoundError:
+        logger.warning("Unknown TZ %r, falling back to UTC", tz_name)
+        return ZoneInfo("UTC")
 
 
 def get(key: str, default=None):
@@ -86,7 +102,8 @@ def load_trakt_credentials() -> dict | None:
 
 
 def append_log(message: str) -> None:
-    entry = {"timestamp": datetime.now(timezone.utc).isoformat(), "message": message}
+    timestamp = datetime.now(resolve_timezone()).strftime("%Y-%m-%d %H:%M:%S")
+    entry = {"timestamp": timestamp, "message": message}
     with _LOCK:
         store = _load()
         log = store.get(KEY_SYNC_LOG, [])

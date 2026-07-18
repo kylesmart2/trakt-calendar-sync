@@ -11,8 +11,6 @@ by init_from_storage() once at app startup.
 """
 
 import logging
-import os
-from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.cron import CronTrigger
@@ -24,21 +22,12 @@ JOB_ID = "daily-sync"
 
 logger = logging.getLogger(__name__)
 
-
-def _resolve_timezone() -> ZoneInfo:
-    # APScheduler defaults to tzlocal's system-detected timezone, which is
-    # UTC in a container unless TZ is both set and backed by an installed
-    # tzdata package (see web/Dockerfile) - read it explicitly so the daily
-    # sync fires at the hour the user actually picked, not UTC's.
-    tz_name = os.environ.get("TZ", "UTC")
-    try:
-        return ZoneInfo(tz_name)
-    except ZoneInfoNotFoundError:
-        logger.warning("Unknown TZ %r, falling back to UTC", tz_name)
-        return ZoneInfo("UTC")
-
-
-_scheduler = BackgroundScheduler(timezone=_resolve_timezone())
+# APScheduler defaults to tzlocal's system-detected timezone, which is UTC in
+# a container unless TZ is both set and backed by an installed tzdata package
+# (see web/Dockerfile) - resolve it explicitly so the daily sync fires at the
+# hour the user actually picked, not UTC's. Same TZ the status log uses (see
+# storage.resolve_timezone()) so the two stay consistent.
+_scheduler = BackgroundScheduler(timezone=storage.resolve_timezone())
 _scheduler.start()
 
 

@@ -1,3 +1,5 @@
+from zoneinfo import ZoneInfo
+
 from web import storage
 
 
@@ -71,3 +73,35 @@ def test_append_log_caps_at_max_entries():
 
     assert len(log) == storage.MAX_LOG_ENTRIES
     assert log[-1]["message"] == f"entry-{storage.MAX_LOG_ENTRIES + 4}"
+
+
+def test_append_log_timestamp_uses_configured_timezone(monkeypatch):
+    # Regression: this used to hardcode UTC regardless of TZ, so a user who
+    # set TZ=America/New_York still saw log timestamps hours off from their
+    # actual local time.
+    monkeypatch.setenv("TZ", "America/New_York")
+
+    storage.append_log("hello")
+
+    entry = storage.get_log()[-1]
+    # "YYYY-MM-DD HH:MM:SS" - no raw isoformat offset/microseconds cluttering
+    # the status log the user actually reads.
+    assert len(entry["timestamp"]) == len("2026-01-01 00:00:00")
+
+
+def test_resolve_timezone_defaults_to_utc(monkeypatch):
+    monkeypatch.delenv("TZ", raising=False)
+
+    assert storage.resolve_timezone() == ZoneInfo("UTC")
+
+
+def test_resolve_timezone_honors_tz_env_var(monkeypatch):
+    monkeypatch.setenv("TZ", "America/New_York")
+
+    assert storage.resolve_timezone() == ZoneInfo("America/New_York")
+
+
+def test_resolve_timezone_falls_back_on_unknown_tz(monkeypatch):
+    monkeypatch.setenv("TZ", "Not/A_Real_Zone")
+
+    assert storage.resolve_timezone() == ZoneInfo("UTC")
